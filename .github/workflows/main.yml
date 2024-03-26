@@ -26,15 +26,15 @@ jobs:
 
     - name: Setup ngrok
       run: |
-        sudo apt-get update
-        sudo apt-get install -y ngrok
-        ngrok authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
+        wget https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip
+        unzip ngrok-stable-linux-amd64.zip
+        ./ngrok authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
     - name: Run Uvicorn app
       run: |
         uvicorn routes:app --host 0.0.0.0 --port 8000 &
-        ngrok http 8000
+        ./ngrok http 8000
 
     - name: Get ngrok URL
       run: |
-        echo "Uvicorn app is running at $(ngrok url)"
+        echo "Uvicorn app is running at $(./ngrok url)"
