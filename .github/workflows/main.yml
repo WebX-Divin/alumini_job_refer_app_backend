@@ -27,7 +27,7 @@ jobs:
     - name: Set up ngrok
       uses: ngrok/ngrok-action@v3
       with:
-        authtoken: 2eDE7CdldhVqhMQ7feovGXztOFH_6sbQNNCFDC1j8mQ1dW6CN
+        authtoken: ${{ secrets.NGROK_AUTH_TOKEN }}
         region: us
 
     - name: Run Uvicorn app
