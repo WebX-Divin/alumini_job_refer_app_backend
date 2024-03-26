@@ -2,3 +2,4 @@ pymongo
 pydantic
 fastapi
 bcrypt
+uvicorn
