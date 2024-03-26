@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr
 from typing import Union
 
 class Token(BaseModel):
@@ -13,5 +13,8 @@ class SignupRequest(BaseModel):
     name: str
     email: EmailStr
     password: str
-    confirmPassword: str
     mobile: str
+
+class LoginRequest(BaseModel):
+    mobile: str
+    password: str
