@@ -3,3 +3,4 @@ pydantic
 fastapi
 bcrypt
 uvicorn
+pydantic[email]
