@@ -1,4 +1,4 @@
-name: Alumini Job Refer App
+name: Deploy Uvicorn App
 
 on:
   push:
@@ -6,33 +6,34 @@ on:
       - main
 
 jobs:
+
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: "3.8"
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: "3.8"
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
 
-      - name: Build and run Uvicorn app
-        run: |
-          uvicorn routes:app --host 0.0.0.0 --port 8000 &
+    - name: Set up ngrok
+      uses: ngrok/ngrok-action@v3
+      with:
+        authtoken: ${{ secrets.NGROK_AUTH_TOKEN }}
+        region: us
 
-      - name: Set up ngrok
-        uses: w9jds/ngrok-action@v2
-        with:
-          authtoken: ${{ secrets.NGROK_AUTH_TOKEN }}
-          region: us
-          port: 8000
+    - name: Run Uvicorn app
+      run: |
+        uvicorn routes:app --host 0.0.0.0 --port ${{ secrets.NGROK_PORT }} &
 
-      - name: Get ngrok public URL
-        run: echo "Public URL: ${{ steps.ngrok.outputs.public_url }}"
+    - name: Get ngrok URL
+      run: |
+        echo "Uvicorn app is running at ${{ steps.ngrok.outputs.public_url }}"
