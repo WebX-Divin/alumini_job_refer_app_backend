@@ -26,8 +26,8 @@ jobs:
 
     - name: Setup ngrok
       run: |
-        wget https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip
-        unzip ngrok-stable-linux-amd64.zip
+        wget https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3.2.0-linux-amd64.zip
+        unzip ngrok-v3.2.0-linux-amd64.zip
         ./ngrok authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
 
     - name: Run Uvicorn app
