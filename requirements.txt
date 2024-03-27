@@ -5,4 +5,6 @@ bcrypt
 uvicorn
 pydantic[email]
 jose
+passlib[bcrypt]
 motor
+python-jose[cryptography]
