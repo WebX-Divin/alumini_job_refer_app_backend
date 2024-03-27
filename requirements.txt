@@ -5,3 +5,4 @@ bcrypt
 uvicorn
 pydantic[email]
 jose
+motor
