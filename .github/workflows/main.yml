@@ -1,4 +1,4 @@
-name: Deploy Uvicorn App
+name: Alumini Job Refer App
 
 on:
   push:
