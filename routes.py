@@ -2,12 +2,18 @@
 
 import bcrypt
 from auth import create_access_token, get_current_user, verify_password
-from schemas.model import LoginRequest, PostRequest, SignupRequest
-from db import users_collection, posts_collection
-from fastapi import Depends, HTTPException, Request, FastAPI
+from schemas.model import LoginRequest, PostRequest, PredictionInput, SignupRequest
+from db import users_collection, posts_collection, predictions_collection
+from fastapi import Depends, HTTPException, Request, FastAPI, Body
+import pickle
+import numpy as np
 
 # FastAPI app instance
 app = FastAPI()
+
+@app.get('/')
+def home():
+    return {'message: Alumini Job Refer App - AI Assisted API'}
 
 # Route for handling signup
 @app.post("/signup")
@@ -69,14 +75,19 @@ async def login(request: Request, data: LoginRequest):
     }
 
 
-@app.get("/users")
+@app.get("/list_users")
 async def list_users(current_user: dict = Depends(get_current_user)):
     return {"user": current_user}
 
 
 # Route for creating a new post
 @app.post("/create_post")
-async def create_post(request: Request, data: PostRequest):
+async def create_post(request: Request, data: PostRequest, current_user: dict = Depends(get_current_user)):
+
+     # Verify if the user is authenticated
+    if not current_user:
+        return {"error": "Unauthorized"}
+
     # Extract data from the request body
     job_role = data.job_role
     company_name = data.company_name
@@ -138,3 +149,82 @@ async def list_posts(current_user: dict = Depends(get_current_user)):
         posts_list.append(post_dict)
 
     return posts_list
+
+# Load the pre-trained model
+loaded_model = pickle.load(open("ml_model/careerlast.pkl", 'rb'))
+
+@app.post("/predict")
+def predict(input_data: PredictionInput = Body(...), current_user: dict = Depends(get_current_user)):
+    # Verify if the user is authenticated
+    if not current_user:
+        return {"error": "Unauthorized"}
+
+    # Convert input data to a NumPy array
+    input_array = np.array([
+        input_data.Database_Fundamentals,
+        input_data.Computer_Architecture,
+        input_data.Distributed_Computing_Systems,
+        input_data.Cyber_Security,
+        input_data.Networking,
+        input_data.Development,
+        input_data.Programming_Skills,
+        input_data.Project_Management,
+        input_data.Computer_Forensics_Fundamentals,
+        input_data.Technical_Communication,
+        input_data.AI_ML,
+        input_data.Software_Engineering,
+        input_data.Business_Analysis,
+        input_data.Communication_skills,
+        input_data.Data_Science,
+        input_data.Troubleshooting_skills,
+        input_data.Graphics_Designing
+    ], dtype=np.float64)
+
+    # Reshape the input array to match the expected input shape of the model
+    input_array = input_array.reshape(1, -1)
+
+    # Make predictions using the loaded model
+    prediction = loaded_model.predict(input_array)
+
+    # Save the prediction to the database
+    prediction_data = {
+        "user_id": str(current_user["_id"]),
+        "input_data": input_data.model_dump(),
+        "prediction": prediction[0]  # Store the prediction as a string
+    }
+    predictions_collection.insert_one(prediction_data)
+
+    return {"prediction": prediction[0]}  # Return the prediction as a string
+
+
+
+from fastapi import HTTPException
+
+@app.get("/list_predictions")
+def get_predictions(current_user: dict = Depends(get_current_user)):
+    # Verify if the user is authenticated
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    # Retrieve predictions for the current user from the database
+    user_predictions = predictions_collection.find({"user_id": str(current_user["_id"])})
+
+    # Convert the cursor to a list and get its length to count the documents
+    predictions_count = len(list(user_predictions))
+
+    # Reset the cursor to the beginning to iterate over it again
+    user_predictions.rewind()
+
+    # If there are no predictions found, return an empty list
+    if predictions_count == 0:
+        return []
+
+    # Prepare the predictions to be returned
+    predictions = []
+    for prediction in user_predictions:
+        predictions.append({
+            "input_data": prediction["input_data"],
+            "prediction": prediction["prediction"]
+        })
+
+    return predictions

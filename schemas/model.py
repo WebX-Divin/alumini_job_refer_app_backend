@@ -29,3 +29,22 @@ class PostRequest(BaseModel):
     salary: int
     referral_code: str
     apply_link: str
+
+class PredictionInput(BaseModel):
+    Database_Fundamentals: int
+    Computer_Architecture: int
+    Distributed_Computing_Systems: int
+    Cyber_Security: int
+    Networking: int
+    Development: int
+    Programming_Skills: int
+    Project_Management: int
+    Computer_Forensics_Fundamentals: int
+    Technical_Communication: int
+    AI_ML: int
+    Software_Engineering: int
+    Business_Analysis: int
+    Communication_skills: int
+    Data_Science: int
+    Troubleshooting_skills: int
+    Graphics_Designing: int

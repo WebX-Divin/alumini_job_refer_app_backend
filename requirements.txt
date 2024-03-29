@@ -8,3 +8,5 @@ jose
 passlib[bcrypt]
 motor
 python-jose[cryptography]
+pickle
+numpy
