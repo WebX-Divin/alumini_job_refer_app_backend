@@ -18,3 +18,14 @@ class SignupRequest(BaseModel):
 class LoginRequest(BaseModel):
     mobile: str
     password: str
+
+class PostRequest(BaseModel):
+    job_role: str
+    company_name: str
+    job_description: str
+    location: str
+    is_part_time: bool
+    is_office: bool
+    salary: int
+    referral_code: str
+    apply_link: str
