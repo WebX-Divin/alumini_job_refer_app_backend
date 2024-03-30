@@ -9,3 +9,4 @@ passlib[bcrypt]
 motor
 python-jose[cryptography]
 numpy
+scikit-learn
