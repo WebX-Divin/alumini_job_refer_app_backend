@@ -197,9 +197,6 @@ def predict(input_data: PredictionInput = Body(...), current_user: dict = Depend
     return {"prediction": prediction[0]}  # Return the prediction as a string
 
 
-
-from fastapi import HTTPException
-
 @app.get("/list_predictions")
 def get_predictions(current_user: dict = Depends(get_current_user)):
     # Verify if the user is authenticated
