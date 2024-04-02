@@ -2,9 +2,10 @@ pymongo
 pydantic
 fastapi
 uvicorn
+bcrypt
 pydantic[email]
 jose
-passlib[argon2-cffi]
+passlib[bcrypt]
 motor
 python-jose[cryptography]
 numpy
