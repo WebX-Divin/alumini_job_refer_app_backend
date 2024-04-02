@@ -6,6 +6,7 @@ uvicorn
 pydantic[email]
 jose
 passlib[bcrypt]
+bcrypt
 motor
 python-jose[cryptography]
 numpy
