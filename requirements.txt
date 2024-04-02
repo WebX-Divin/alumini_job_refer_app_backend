@@ -1,7 +1,6 @@
 pymongo
 pydantic
 fastapi
-bcrypt
 uvicorn
 pydantic[email]
 jose
