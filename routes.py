@@ -1,28 +1,27 @@
 
-
+from bson import ObjectId
 import bcrypt
 from auth import create_access_token, get_current_user, verify_password
 from schemas.model import LoginRequest, PostRequest, PredictionInput, SignupRequest
 from db import users_collection, posts_collection, predictions_collection
-from fastapi import Depends, HTTPException, Request, FastAPI, Body
+from fastapi import Depends, HTTPException, Request, FastAPI, Body, status
 import pickle
 import numpy as np
 
-# FastAPI app instance
 app = FastAPI()
 
 @app.get('/')
 def home():
-    return {'message: Alumini Job Refer App - AI Assisted API'}
+    return {'message: Alumini Job Refer App with ML Skill Finder'}
 
-# Route for handling signup
 @app.post("/signup")
 async def signup(request: Request, data: SignupRequest):
-    # Extract data from the request body
+
     name = data.name
     email = data.email
     password = data.password
     mobile = data.mobile
+    userType = data.userType
 
     # Check if the email already exists in the database
     existing_user = users_collection.find_one({"email": email})
@@ -38,6 +37,7 @@ async def signup(request: Request, data: SignupRequest):
         "email": email,
         "password": hashed_password.decode("utf-8"),
         "mobile": mobile,
+        "userType": userType
     }
     users_collection.insert_one(user)
 
@@ -51,10 +51,9 @@ async def signup(request: Request, data: SignupRequest):
     }
 
 
-# Route for handling login
 @app.post("/login")
 async def login(request: Request, data: LoginRequest):
-    # Find the user in the database
+    
     user = users_collection.find_one({"mobile": data.mobile})
     if not user:
         raise HTTPException(status_code=401, detail="Invalid phone number or password")
@@ -75,16 +74,10 @@ async def login(request: Request, data: LoginRequest):
     }
 
 
-@app.get("/list_users")
-async def list_users(current_user: dict = Depends(get_current_user)):
-    return {"user": current_user}
 
-
-# Route for creating a new post
 @app.post("/create_post")
 async def create_post(request: Request, data: PostRequest, current_user: dict = Depends(get_current_user)):
 
-     # Verify if the user is authenticated
     if not current_user:
         return {"error": "Unauthorized"}
 
@@ -120,42 +113,12 @@ async def create_post(request: Request, data: PostRequest, current_user: dict = 
         "post_id": str(result.inserted_id)
     }
 
-# Route to list all posts
-@app.get("/list_posts")
-async def list_posts(current_user: dict = Depends(get_current_user)):
-
-     # Verify if the user is authenticated
-    if not current_user:
-        return {"error": "Unauthorized"}
-
-    # Retrieve all posts from the database
-    posts = posts_collection.find()
-
-    # Convert the posts to a list of dictionaries
-    posts_list = []
-    for post in posts:
-        post_dict = {
-            "id": str(post["_id"]),
-            "job_role": post["job_role"],
-            "company_name": post["company_name"],
-            "job_description": post["job_description"],
-            "location": post["location"],
-            "is_part_time": post["is_part_time"],
-            "is_office": post["is_office"],
-            "salary": post["salary"],
-            "referral_code": post["referral_code"],
-            "apply_link": post["apply_link"]
-        }
-        posts_list.append(post_dict)
-
-    return posts_list
 
 # Load the pre-trained model
 loaded_model = pickle.load(open("ml_model/careerlast.pkl", 'rb'))
-
 @app.post("/predict")
 def predict(input_data: PredictionInput = Body(...), current_user: dict = Depends(get_current_user)):
-    # Verify if the user is authenticated
+   
     if not current_user:
         return {"error": "Unauthorized"}
 
@@ -189,6 +152,7 @@ def predict(input_data: PredictionInput = Body(...), current_user: dict = Depend
     # Save the prediction to the database
     prediction_data = {
         "user_id": str(current_user["_id"]),
+        "user_name": str(current_user["name"]),
         "input_data": input_data.model_dump(),
         "prediction": prediction[0]  # Store the prediction as a string
     }
@@ -196,32 +160,105 @@ def predict(input_data: PredictionInput = Body(...), current_user: dict = Depend
 
     return {"prediction": prediction[0]}  # Return the prediction as a string
 
+@app.get("/list_users")
+async def list_users(current_user: dict = Depends(get_current_user)):
+    # Check if the user is an admin (or any other role that has permission to view all users)
+    if current_user.get("userType") != "Admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+
+    # Retrieve all users from the database
+    all_users = list(users_collection.find())
+
+    # Convert ObjectId to string for serialization for each user
+    for user in all_users:
+        user['_id'] = str(user['_id'])
+
+    return {"users": all_users}
+
+@app.get("/list_posts")
+async def list_posts(current_user: dict = Depends(get_current_user)):
+
+    if current_user.get("userType") != "Admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+
+    # Retrieve all posts from the database
+    posts = posts_collection.find()
+
+    # Convert the posts to a list of dictionaries
+    posts_list = []
+    for post in posts:
+        post_dict = {
+            "id": str(post["_id"]),
+            "job_role": post["job_role"],
+            "company_name": post["company_name"],
+            "job_description": post["job_description"],
+            "location": post["location"],
+            "is_part_time": post["is_part_time"],
+            "is_office": post["is_office"],
+            "salary": post["salary"],
+            "referral_code": post["referral_code"],
+            "apply_link": post["apply_link"]
+        }
+        posts_list.append(post_dict)
+
+    return posts_list
 
 @app.get("/list_predictions")
-def get_predictions(current_user: dict = Depends(get_current_user)):
-    # Verify if the user is authenticated
-    if not current_user:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+def list_predictions(current_user: dict = Depends(get_current_user)):
+   
+    if current_user.get("userType") != "Admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
 
-    # Retrieve predictions for the current user from the database
-    user_predictions = predictions_collection.find({"user_id": str(current_user["_id"])})
-
-    # Convert the cursor to a list and get its length to count the documents
-    predictions_count = len(list(user_predictions))
-
-    # Reset the cursor to the beginning to iterate over it again
-    user_predictions.rewind()
-
-    # If there are no predictions found, return an empty list
-    if predictions_count == 0:
-        return []
+   # Retrieve all predictions from the database
+    all_predictions = list(predictions_collection.find())
 
     # Prepare the predictions to be returned
     predictions = []
-    for prediction in user_predictions:
+    for prediction in all_predictions:
+        # Fetch user details including name
+        user_details = predictions_collection.find_one({"user_name": prediction["user_name"]})
+        if user_details:
+            user_name = user_details["user_name"]  # Use "user_name" field
+        else:
+            user_name = "Unknown"
+        
         predictions.append({
-            "input_data": prediction["input_data"],
+            "user_name": user_name,
             "prediction": prediction["prediction"]
         })
 
     return predictions
+
+
+@app.delete("/delete_post")
+async def delete_post(post_index: int, current_user: dict = Depends(get_current_user)):
+
+    if current_user.get("userType") != "Admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+
+    # Retrieve all posts from the database
+    posts = posts_collection.find()
+
+    # Convert the posts to a list of dictionaries
+    posts_list = list(posts)
+
+    # Check if the post index is within range
+    if post_index < 0 or post_index >= len(posts_list):
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    # Delete the post from the list
+    deleted_post = posts_list.pop(post_index)
+
+    # Convert ObjectId to string for serialization
+    deleted_post['_id'] = str(deleted_post['_id'])
+
+    # Update the database by removing the corresponding document
+    deleted_post_id = deleted_post['_id']
+    deleted_post_id_obj = ObjectId(deleted_post_id)
+    deleted_count = posts_collection.delete_one({"_id": deleted_post_id_obj})
+
+    if deleted_count.deleted_count == 0:
+        raise HTTPException(status_code=500, detail="Failed to delete post from the database")
+
+    return {"message": "Post deleted successfully", "deleted_post": deleted_post}
+

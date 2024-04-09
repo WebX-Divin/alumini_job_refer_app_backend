@@ -14,6 +14,7 @@ class SignupRequest(BaseModel):
     email: EmailStr
     password: str
     mobile: str
+    userType: str
 
 class LoginRequest(BaseModel):
     mobile: str
