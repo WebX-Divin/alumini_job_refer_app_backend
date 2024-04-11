@@ -61,6 +61,9 @@ async def login(request: Request, data: LoginRequest):
     # Verify the password
     if not verify_password(data.password, user["password"]):
         raise HTTPException(status_code=401, detail="Invalid phone number or password")
+    
+    # Get userType from the user data
+    userType = user.get("userType")
 
     # Generate and return JWT token
     token = user.get("token")
@@ -69,6 +72,7 @@ async def login(request: Request, data: LoginRequest):
         users_collection.update_one({"mobile": data.mobile}, {"$set": {"token": token}})
 
     return {
+        "userType": userType,
         "token": token,
         "message": "User login successfully"
     }
