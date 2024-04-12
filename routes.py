@@ -45,8 +45,12 @@ async def signup(request: Request, data: SignupRequest):
     token = create_access_token(data={"email": email})
     users_collection.update_one({"email": email}, {"$set": {"token": token}})
 
+    # Get userType from the user data
+    userType = user.get("userType")
+
     return {
         "token": token,
+        "userType": userType,
         "message": "User registered successfully"
     }
 
@@ -72,8 +76,9 @@ async def login(request: Request, data: LoginRequest):
         users_collection.update_one({"mobile": data.mobile}, {"$set": {"token": token}})
 
     return {
-        "userType": userType,
+        
         "token": token,
+        "userType": userType,
         "message": "User login successfully"
     }
 
@@ -166,9 +171,11 @@ def predict(input_data: PredictionInput = Body(...), current_user: dict = Depend
 
 @app.get("/list_users")
 async def list_users(current_user: dict = Depends(get_current_user)):
-    # Check if the user is an admin (or any other role that has permission to view all users)
-    if current_user.get("userType") != "Admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+  
+    allowed_user = ["Admin"]
+
+    if current_user.get("userType") not in allowed_user:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admin can access this endpoint")
 
     # Retrieve all users from the database
     all_users = list(users_collection.find())
@@ -182,8 +189,10 @@ async def list_users(current_user: dict = Depends(get_current_user)):
 @app.get("/list_posts")
 async def list_posts(current_user: dict = Depends(get_current_user)):
 
-    if current_user.get("userType") != "Admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+    allowed_user = ["Admin", "Student", "Alumni"]
+
+    if current_user.get("userType") not in allowed_user:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid UserType")
 
     # Retrieve all posts from the database
     posts = posts_collection.find()
@@ -209,9 +218,11 @@ async def list_posts(current_user: dict = Depends(get_current_user)):
 
 @app.get("/list_predictions")
 def list_predictions(current_user: dict = Depends(get_current_user)):
+
+    allowed_user = ["Admin"]
    
-    if current_user.get("userType") != "Admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+    if current_user.get("userType") not in allowed_user:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admin can access this endpoint")
 
    # Retrieve all predictions from the database
     all_predictions = list(predictions_collection.find())
