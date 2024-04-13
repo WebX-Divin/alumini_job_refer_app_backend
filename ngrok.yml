@@ -1,0 +1,7 @@
+authtoken:
+version: 2
+tunnels:
+  alumni_hub:
+    proto: http
+    hostname: smart-insect-cleanly.ngrok-free.app
+    addr: 127.0.0.1:80

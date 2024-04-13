@@ -1,1 +1,0 @@
-[![Alumini Job Refer App - AI Assisted](https://github.com/WebX-Divin/alumini_job_refer_app_backend/actions/workflows/main.yml/badge.svg)](https://github.com/WebX-Divin/alumini_job_refer_app_backend/actions/workflows/main.yml)

@@ -1,0 +1,15 @@
+# Ignore Python bytecode files
+__pycache__
+*.pyc
+
+# Ignore virtual environment
+venv/
+ENV/
+
+# Ignore any local development or temporary files
+*.log
+
+# Ignore ngrok binary
+ngrok
+
+

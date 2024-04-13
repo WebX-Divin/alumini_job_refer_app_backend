@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  uvicorn_ngrok:
+    build: .
+    ports:
+      - "8000:8000"
+    command:  uvicorn routes:app --host 0.0.0.0 --port 8000 
+
+  ngrok:
+    image: ngrok/ngrok
+    volumes:
+      - ./ngrok.yml:/home/ngrok/.ngrok2/ngrok.yml
+    ports:
+      - "4040:4040"
+    command: ngrok http --domain=smart-insect-cleanly.ngrok-free.app 8000 

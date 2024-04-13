@@ -7,12 +7,27 @@ from db import users_collection, posts_collection, predictions_collection
 from fastapi import Depends, HTTPException, Request, FastAPI, Body, status
 import pickle
 import numpy as np
+import requests
 
 app = FastAPI()
 
+
+
+# def home():
+#     return {'message: Alumini Job Refer App with ML Skill Finder'}
+NGROK_DOMAIN = "smart-insect-cleanly.ngrok.com"  # Update this with your ngrok domain
 @app.get('/')
-def home():
-    return {'message: Alumini Job Refer App with ML Skill Finder'}
+async def root():
+    try:
+        # Make a GET request to ngrok domain
+        response = requests.get(f"http://{NGROK_DOMAIN}")
+        if response.status_code == 200:
+            return response.text
+        else:
+            raise HTTPException(status_code=response.status_code, detail="Error fetching data from ngrok domain")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/signup")
 async def signup(request: Request, data: SignupRequest):
@@ -60,11 +75,11 @@ async def login(request: Request, data: LoginRequest):
     
     user = users_collection.find_one({"mobile": data.mobile})
     if not user:
-        raise HTTPException(status_code=401, detail="Invalid phone number or password")
+        raise HTTPException(status_code=401, detail="Invalid phone number")
 
     # Verify the password
     if not verify_password(data.password, user["password"]):
-        raise HTTPException(status_code=401, detail="Invalid phone number or password")
+        raise HTTPException(status_code=401, detail="Invalid password")
     
     # Get userType from the user data
     userType = user.get("userType")
@@ -88,7 +103,7 @@ async def login(request: Request, data: LoginRequest):
 async def create_post(request: Request, data: PostRequest, current_user: dict = Depends(get_current_user)):
 
     if not current_user:
-        return {"error": "Unauthorized"}
+        return {"message": "Token expired"}
 
     # Extract data from the request body
     job_role = data.job_role
@@ -129,7 +144,7 @@ loaded_model = pickle.load(open("ml_model/careerlast.pkl", 'rb'))
 def predict(input_data: PredictionInput = Body(...), current_user: dict = Depends(get_current_user)):
    
     if not current_user:
-        return {"error": "Unauthorized"}
+        return {"message": "Token expired"}
 
     # Convert input data to a NumPy array
     input_array = np.array([
@@ -169,6 +184,7 @@ def predict(input_data: PredictionInput = Body(...), current_user: dict = Depend
 
     return {"prediction": prediction[0]}  # Return the prediction as a string
 
+
 @app.get("/list_users")
 async def list_users(current_user: dict = Depends(get_current_user)):
   
@@ -186,13 +202,14 @@ async def list_users(current_user: dict = Depends(get_current_user)):
 
     return {"users": all_users}
 
+
 @app.get("/list_posts")
 async def list_posts(current_user: dict = Depends(get_current_user)):
 
     allowed_user = ["Admin", "Student", "Alumni"]
 
     if current_user.get("userType") not in allowed_user:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid UserType")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admin can access this endpoint")
 
     # Retrieve all posts from the database
     posts = posts_collection.find()
@@ -215,6 +232,7 @@ async def list_posts(current_user: dict = Depends(get_current_user)):
         posts_list.append(post_dict)
 
     return posts_list
+
 
 @app.get("/list_predictions")
 def list_predictions(current_user: dict = Depends(get_current_user)):
@@ -246,34 +264,40 @@ def list_predictions(current_user: dict = Depends(get_current_user)):
 
 
 @app.delete("/delete_post")
-async def delete_post(post_index: int, current_user: dict = Depends(get_current_user)):
+async def delete_post(job_name: str, post_id: str, current_user: dict = Depends(get_current_user)):
 
-    if current_user.get("userType") != "Admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+    allowed_user = ["Admin"]
 
-    # Retrieve all posts from the database
-    posts = posts_collection.find()
+    if current_user.get("userType") not in allowed_user:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admin can access this endpoint")
 
-    # Convert the posts to a list of dictionaries
-    posts_list = list(posts)
+    # Find the post by job name and object ID
+    post = posts_collection.find_one({"_id": ObjectId(post_id), "job_role": job_name})
 
-    # Check if the post index is within range
-    if post_index < 0 or post_index >= len(posts_list):
-        raise HTTPException(status_code=404, detail="Post not found")
+    if post:
+        # Delete the post
+        posts_collection.delete_one({"_id": ObjectId(post_id)})
+        return {"message": "Post deleted successfully"}
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+    
 
-    # Delete the post from the list
-    deleted_post = posts_list.pop(post_index)
 
-    # Convert ObjectId to string for serialization
-    deleted_post['_id'] = str(deleted_post['_id'])
+@app.delete("/delete_user")
+async def delete_user(mobile_number: str, current_user: dict = Depends(get_current_user)):
 
-    # Update the database by removing the corresponding document
-    deleted_post_id = deleted_post['_id']
-    deleted_post_id_obj = ObjectId(deleted_post_id)
-    deleted_count = posts_collection.delete_one({"_id": deleted_post_id_obj})
+    allowed_user = ["Admin"]
 
-    if deleted_count.deleted_count == 0:
-        raise HTTPException(status_code=500, detail="Failed to delete post from the database")
+    if current_user.get("userType") not in allowed_user:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admin can access this endpoint")
 
-    return {"message": "Post deleted successfully", "deleted_post": deleted_post}
+    # Find the user by mobile number
+    user = users_collection.find_one({"mobile": mobile_number})
+
+    if user:
+        # Delete the user
+        users_collection.delete_one({"mobile": mobile_number})
+        return {"message": "User deleted successfully"}
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
