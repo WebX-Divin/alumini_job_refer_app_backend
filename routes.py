@@ -12,21 +12,9 @@ import requests
 app = FastAPI()
 
 
-
-# def home():
-#     return {'message: Alumini Job Refer App with ML Skill Finder'}
-NGROK_DOMAIN = "smart-insect-cleanly.ngrok.com"  # Update this with your ngrok domain
 @app.get('/')
-async def root():
-    try:
-        # Make a GET request to ngrok domain
-        response = requests.get(f"http://{NGROK_DOMAIN}")
-        if response.status_code == 200:
-            return response.text
-        else:
-            raise HTTPException(status_code=response.status_code, detail="Error fetching data from ngrok domain")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+def home():
+    return {'message: Alumini Job Refer App with ML Skill Finder'}
 
 
 @app.post("/signup")
