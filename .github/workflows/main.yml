@@ -22,9 +22,6 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install virtualenv
-        virtualenv venv
-        source venv/bin/activate
         pip install -r requirements.txt
 
     - name: Set up Ngrok and authenticate
@@ -35,15 +32,12 @@ jobs:
 
     - name: Setup and run Ngrok tunnel
       run: |
-        nohup ./ngrok http --domain=smart-insect-cleanly.ngrok-free.app 8000 & 
-        sleep 10 # Give time for Ngrok to start
-
+        nohup ./ngrok http --domain=smart-insect-cleanly.ngrok-free.app 8000 
     - name: Run Uvicorn app
       run: |
         source venv/bin/activate
         nohup uvicorn routes:app --host 0.0.0.0 --port 8000 & 
-        sleep 10 # Give time for Uvicorn to start
-
+        
     - name: Get Ngrok URL
       run: |
         ngrok_url=$(curl -s localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url')
