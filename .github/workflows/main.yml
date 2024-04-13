@@ -27,22 +27,20 @@ jobs:
         source venv/bin/activate
         pip install -r requirements.txt
 
-    - name: Setup ngrok
+    - name: Setup and run Ngrok tunnel
       run: |
         wget https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3.2.0-linux-amd64.zip
         unzip ngrok-v3.2.0-linux-amd64.zip
-        ./ngrok authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
+        nohup ./ngrok http --domain=smart-insect-cleanly.ngrok-free.app 8000 & 
+        sleep 10 # Give time for Ngrok to start
 
     - name: Run Uvicorn app
       run: |
         source venv/bin/activate
         nohup uvicorn routes:app --host 0.0.0.0 --port 8000 & 
         sleep 10 # Give time for Uvicorn to start
-        while true; do
-          ./ngrok http 8000
-          sleep 10 # Wait before restarting ngrok
-        done
 
-    - name: Get ngrok URL
+    - name: Get Ngrok URL
       run: |
-        echo "Uvicorn app is running at $(./ngrok url)"
+        ngrok_url=$(curl -s localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url')
+        echo "Uvicorn app is running at $ngrok_url"
