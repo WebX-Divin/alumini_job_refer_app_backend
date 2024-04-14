@@ -172,8 +172,8 @@ def predict(input_data: PredictionInput = Body(...), current_user: dict = Depend
 
     return {"prediction": prediction[0]}  # Return the prediction as a string
 
-@app.get("/user_details")
-async def get_user_details(current_user: dict = Depends(get_current_user)):
+@app.post("/user_details")
+async def get_user_details(data: UserDetails, current_user: dict = Depends(get_current_user)):
   
     allowed_user = ["Admin", "Student", "Alumni"]
 
@@ -181,7 +181,7 @@ async def get_user_details(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid Token")
 
     # Find the user by token in the database and retrieve specific fields
-    user = users_collection.find_one({"token": current_user.get('token')}, {"name": 1, "mobile": 1, "email": 1, "userType": 1})
+    user = users_collection.find_one({"token": data.token}, {"name": 1, "mobile": 1, "email": 1, "userType": 1})
 
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
