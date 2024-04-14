@@ -176,7 +176,7 @@ def predict(input_data: PredictionInput = Body(...), current_user: dict = Depend
 @app.get("/list_users")
 async def list_users(current_user: dict = Depends(get_current_user)):
   
-    allowed_user = ["Admin"]
+    allowed_user = ["Admin", "Student", "Alumni"]
 
     if current_user.get("userType") not in allowed_user:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admin can access this endpoint")
