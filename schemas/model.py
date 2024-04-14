@@ -49,3 +49,6 @@ class PredictionInput(BaseModel):
     Data_Science: int
     Troubleshooting_skills: int
     Graphics_Designing: int
+
+class UserDetails(BaseModel):
+    token: str

@@ -2,7 +2,7 @@
 from bson import ObjectId
 import bcrypt
 from auth import create_access_token, get_current_user, verify_password
-from schemas.model import LoginRequest, PostRequest, PredictionInput, SignupRequest
+from schemas.model import LoginRequest, PostRequest, PredictionInput, SignupRequest, UserDetails
 from db import users_collection, posts_collection, predictions_collection
 from fastapi import Depends, HTTPException, Request, FastAPI, Body, status
 import pickle
@@ -172,11 +172,27 @@ def predict(input_data: PredictionInput = Body(...), current_user: dict = Depend
 
     return {"prediction": prediction[0]}  # Return the prediction as a string
 
+@app.get("/user_details")
+async def get_user_details(current_user: dict = Depends(get_current_user)):
+  
+    allowed_user = ["Admin", "Student", "Alumni"]
+
+    if current_user.get("userType") not in allowed_user:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid Token")
+
+    # Find the user by token in the database and retrieve specific fields
+    user = users_collection.find_one({"token": current_user.get('token')}, {"name": 1, "mobile": 1, "email": 1, "userType": 1})
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    return {"name": user.get("name"), "mobile": user.get("mobile"), "email": user.get("email"), "userType": user.get("userType")}
+
 
 @app.get("/list_users")
 async def list_users(current_user: dict = Depends(get_current_user)):
   
-    allowed_user = ["Admin", "Student", "Alumni"]
+    allowed_user = ["Admin"]
 
     if current_user.get("userType") not in allowed_user:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admin can access this endpoint")
@@ -288,4 +304,6 @@ async def delete_user(mobile_number: str, current_user: dict = Depends(get_curre
         return {"message": "User deleted successfully"}
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+
 
