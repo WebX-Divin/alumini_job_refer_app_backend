@@ -2,7 +2,7 @@
 from bson import ObjectId
 import bcrypt
 from auth import create_access_token, get_current_user, verify_password
-from schemas.model import LoginRequest, PostRequest, PredictionInput, SignupRequest, UserDetails
+from schemas.model import LoginRequest, PostRequest, PredictionInput, SignupRequest
 from db import users_collection, posts_collection, predictions_collection
 from fastapi import Depends, HTTPException, Request, FastAPI, Body, status
 import pickle
@@ -71,6 +71,9 @@ async def login(request: Request, data: LoginRequest):
     
     # Get userType from the user data
     userType = user.get("userType")
+    name = user.get("name")
+    mobile = user.get("mobile")
+    email = user.get("email")
 
     # Generate and return JWT token
     token = user.get("token")
@@ -81,6 +84,9 @@ async def login(request: Request, data: LoginRequest):
     return {
         
         "token": token,
+        "name": name,
+        "mobile": mobile,
+        "email": email,
         "userType": userType,
         "message": "User login successfully"
     }
@@ -171,24 +177,6 @@ def predict(input_data: PredictionInput = Body(...), current_user: dict = Depend
     predictions_collection.insert_one(prediction_data)
 
     return {"prediction": prediction[0]}  # Return the prediction as a string
-
-@app.get("/user_details")
-async def get_user_details(current_user: dict = Depends(get_current_user)):
-  
-    allowed_user = ["Admin", "Student", "Alumni"]
-
-    if current_user.get("userType") not in allowed_user:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid Token")
-    
-    token = current_user.get("token")
-
-    # Find the user by token in the database and retrieve specific fields
-    user = users_collection.find_one({"token": token}, {"name": 1, "mobile": 1, "email": 1, "userType": 1})
-
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-
-    return {"name": user.get("name"), "mobile": user.get("mobile"), "email": user.get("email"), "userType": user.get("userType")}
 
 
 @app.get("/list_users")
