@@ -50,9 +50,15 @@ async def signup(request: Request, data: SignupRequest):
 
     # Get userType from the user data
     userType = user.get("userType")
+    name = user.get("name")
+    mobile = user.get("mobile")
+    email = user.get("email")
 
     return {
         "token": token,
+        "name": name,
+        "mobile": mobile,
+        "email": email,
         "userType": userType,
         "message": "User registered successfully"
     }
@@ -69,7 +75,6 @@ async def login(request: Request, data: LoginRequest):
     if not verify_password(data.password, user["password"]):
         raise HTTPException(status_code=401, detail="Invalid password")
     
-    # Get userType from the user data
     userType = user.get("userType")
     name = user.get("name")
     mobile = user.get("mobile")
