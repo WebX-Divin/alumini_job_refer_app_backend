@@ -49,3 +49,12 @@ class PredictionInput(BaseModel):
     Data_Science: int
     Troubleshooting_skills: int
     Graphics_Designing: int
+
+
+class DeleteUser(BaseModel):
+    mobile: str
+
+
+class DeletePost(BaseModel):
+    job_name: str
+    id: str

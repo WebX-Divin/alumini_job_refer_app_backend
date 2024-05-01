@@ -2,7 +2,7 @@
 from bson import ObjectId
 import bcrypt
 from auth import create_access_token, get_current_user, verify_password
-from schemas.model import LoginRequest, PostRequest, PredictionInput, SignupRequest
+from schemas.model import LoginRequest, PostRequest, PredictionInput, SignupRequest, DeleteUser, DeletePost
 from db import users_collection, posts_collection, predictions_collection
 from fastapi import Depends, HTTPException, Request, FastAPI, Body, status
 import pickle
@@ -263,7 +263,7 @@ def list_predictions(current_user: dict = Depends(get_current_user)):
 
 
 @app.delete("/delete_post")
-async def delete_post(job_name: str, post_id: str, current_user: dict = Depends(get_current_user)):
+async def delete_post(request: Request, data:DeletePost, current_user: dict = Depends(get_current_user)):
 
     allowed_user = ["Admin"]
 
@@ -271,11 +271,11 @@ async def delete_post(job_name: str, post_id: str, current_user: dict = Depends(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admin can access this endpoint")
 
     # Find the post by job name and object ID
-    post = posts_collection.find_one({"_id": ObjectId(post_id), "job_role": job_name})
+    post = posts_collection.find_one({"_id": ObjectId(data.id), "job_role": data.job_name})
 
     if post:
         # Delete the post
-        posts_collection.delete_one({"_id": ObjectId(post_id)})
+        posts_collection.delete_one({"_id": ObjectId(data.id)})
         return {"message": "Post deleted successfully"}
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
@@ -283,19 +283,20 @@ async def delete_post(job_name: str, post_id: str, current_user: dict = Depends(
 
 
 @app.delete("/delete_user")
-async def delete_user(mobile_number: str, current_user: dict = Depends(get_current_user)):
+async def delete_user(request: Request, data:DeleteUser, current_user: dict = Depends(get_current_user)):
 
-    allowed_user = ["Admin"]
+
+    allowed_user = ["Admin", "Student", "Alumni"]
 
     if current_user.get("userType") not in allowed_user:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admin can access this endpoint")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Something went wrong in the usertypes")
 
     # Find the user by mobile number
-    user = users_collection.find_one({"mobile": mobile_number})
+    user = users_collection.find_one({"mobile": data.mobile})
 
     if user:
         # Delete the user
-        users_collection.delete_one({"mobile": mobile_number})
+        users_collection.delete_one({"mobile": data.mobile})
         return {"message": "User deleted successfully"}
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
